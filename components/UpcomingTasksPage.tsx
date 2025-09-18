@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Language, Task, WeeklyTasks } from '../types';
+import type { Language, Task, WeeklyTasks, AITask } from '../types';
 import { translations } from '../translations';
 import { CalendarIcon } from './icons/CalendarIcon';
 
@@ -11,24 +11,41 @@ interface UpcomingTasksPageProps {
     language: Language;
 }
 
-const TaskItem: React.FC<{ text: string, completed?: boolean }> = ({ text, completed }) => (
-    <div className={`flex items-start gap-3 p-3 bg-gray-50 rounded-lg ${completed ? 'opacity-60' : ''}`}>
-        {typeof completed !== 'undefined' ? (
-            <div className={`mt-1 w-5 h-5 rounded border-2 flex-shrink-0 ${completed ? 'bg-farm-green border-farm-green' : 'border-gray-300'}`}>
-                {completed && <svg className="w-full h-full text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+const priorityStyles: { [key: string]: string } = {
+    high: 'bg-red-100 text-red-700 border-red-200',
+    medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    low: 'bg-blue-100 text-blue-700 border-blue-200',
+};
+
+const TaskItem: React.FC<{ task: Task | AITask }> = ({ task }) => {
+    const t = translations['en'].tasks; // Use a fixed language for priorities as they are keys
+    const isCompleted = 'completed' in task ? task.completed : false;
+
+    return (
+        <div className={`flex items-start gap-4 p-3 bg-gray-50 rounded-lg border-l-4 ${isCompleted ? 'opacity-60 border-gray-300' : 'border-gray-200'}`}>
+            <div className="flex-1">
+                <p className={`${isCompleted ? 'line-through text-gray-500' : 'text-gray-800'}`}>{task.text}</p>
+                <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                    <div className="flex items-center gap-1">
+                        <CalendarIcon className="h-4 w-4" />
+                        {/* FIX: Use a reliable property like 'completed' to differentiate between Task and AITask types. */}
+                        <span>{'completed' in task ? task.dueDate : task.time}</span>
+                    </div>
+                </div>
             </div>
-        ) : (
-            <div className="mt-1 w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></div>
-        )}
-        <p className={`${completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>{text}</p>
-    </div>
-);
+            <div className={`px-2 py-1 text-xs font-semibold rounded-full border ${priorityStyles[task.priority]}`}>
+                {t.priorities[task.priority]}
+            </div>
+        </div>
+    );
+};
+
 
 const LoadingSkeleton: React.FC = () => (
     <div className="space-y-3">
-        <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-        <div className="h-12 bg-gray-200 rounded-lg animate-pulse" style={{ animationDelay: '0.1s' }}></div>
-        <div className="h-12 bg-gray-200 rounded-lg animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+        <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+        <div className="h-16 bg-gray-200 rounded-lg animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+        <div className="h-16 bg-gray-200 rounded-lg animate-pulse" style={{ animationDelay: '0.2s' }}></div>
     </div>
 );
 
@@ -56,7 +73,7 @@ export const UpcomingTasksPage: React.FC<UpcomingTasksPageProps> = ({ todaysTask
                 ) : todaysTasks.length > 0 ? (
                     <div className="space-y-3">
                         {todaysTasks.map(task => (
-                            <TaskItem key={task.id} text={task.text} completed={task.completed} />
+                            <TaskItem key={task.id} task={task} />
                         ))}
                     </div>
                 ) : (
@@ -77,7 +94,7 @@ export const UpcomingTasksPage: React.FC<UpcomingTasksPageProps> = ({ todaysTask
                                 {tasks.length > 0 ? (
                                     <div className="space-y-2">
                                         {tasks.map((task, taskIndex) => (
-                                            <TaskItem key={taskIndex} text={task} />
+                                            <TaskItem key={taskIndex} task={task} />
                                         ))}
                                     </div>
                                 ) : (

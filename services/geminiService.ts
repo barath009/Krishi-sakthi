@@ -1,5 +1,5 @@
 import { GoogleGenAI, Chat, Type } from '@google/genai';
-import type { Profile, SoilData, CropRecommendation, Language, DashboardAdvice, MarketPrice, WeeklyTasks } from '../types';
+import type { Profile, SoilData, CropRecommendation, Language, DashboardAdvice, MarketPrice, WeeklyTasks, AITask } from '../types';
 import { translations } from '../translations';
 
 if (!process.env.API_KEY) {
@@ -23,7 +23,7 @@ Here is the farmer's profile:
 - Name: ${profile.name}
 - Location (District): ${districtName}
 - Land Size: ${profile.landSize}
-- Main Crop: ${profile.crop}
+- Main Crop: ${profile.crop || 'Not selected yet'}
 - Soil Type: ${profile.soilType}
 - Irrigation Method: ${profile.irrigation}
 
@@ -34,7 +34,7 @@ Keep your answers concise, clear, and easy for a farmer to understand.
 NEW CAPABILITY (Image Analysis): If the user uploads a plant image, identify diseases or pests. Provide symptoms and treatment options in English. If the image is unclear, state that you cannot analyze it.
 
 NEW CAPABILITY (Task Management): If the user asks to add a task, respond with ONLY a JSON object in this format. Do not add any other text.
-{"action": "addTask", "task": "The task description translated to English"}
+{"action": "addTask", "task": {"text": "The task description in English", "priority": "medium", "time": "Anytime"}}
 
 For all other queries, respond naturally and ONLY in English.`,
         ml: `നിങ്ങൾ "കൃഷി സഖി" എന്ന പേരിൽ അറിയപ്പെടുന്ന ഒരു AI ഫാമിംഗ് അസിസ്റ്റന്റാണ്. കേരളത്തിലെ കർഷകർക്ക് വേണ്ടിയുള്ള നിങ്ങളുടെ സഹായം വളരെ വലുതാണ്.
@@ -47,7 +47,7 @@ For all other queries, respond naturally and ONLY in English.`,
 - പേര്: ${profile.name}
 - സ്ഥലം (ജില്ല): ${districtName}
 - സ്ഥലത്തിന്റെ വലുപ്പം: ${profile.landSize}
-- പ്രധാന വിള: ${profile.crop}
+- പ്രധാന വിള: ${profile.crop || 'ഇതുവരെ തിരഞ്ഞെടുത്തിട്ടില്ല'}
 - മണ്ണിന്റെ തരം: ${profile.soilType}
 - ജലസേചന രീതി: ${profile.irrigation}
 
@@ -58,7 +58,7 @@ For all other queries, respond naturally and ONLY in English.`,
 പുതിയ കഴിവ് (ചിത്രം വിശകലനം ചെയ്യൽ): ഉപയോക്താവ് ഒരു ചെടിയുടെ ചിത്രം അപ്‌ലോഡ് ചെയ്താൽ, അതിലെ രോഗങ്ങളോ കീടങ്ങളോ തിരിച്ചറിയുക. രോഗലക്ഷണങ്ങളും ചികിത്സാ രീതികളും മലയാളത്തിൽ നൽകുക. ചിത്രം വ്യക്തമല്ലെങ്കിൽ, അത് വിശകലനം ചെയ്യാൻ കഴിയില്ലെന്ന് മലയാളത്തിൽ പറയുക.
 
 പുതിയ കഴിവ് (ടാസ്ക് മാനേജ്മെന്റ്): ഒരു ടാസ്ക് ചേർക്കാൻ ഉപയോക്താവ് ആവശ്യപ്പെട്ടാൽ, ഈ ഫോർമാറ്റിൽ ഒരു JSON ഒബ്ജക്റ്റ് മാത്രം നൽകുക. മറ്റ് ടെക്സ്റ്റ് ഒന്നും ചേർക്കരുത്.
-{"action": "addTask", "task": "ടാസ്കിന്റെ വിവരണം മലയാളത്തിൽ"}
+{"action": "addTask", "task": {"text": "ടാസ്കിന്റെ വിവരണം മലയാളത്തിൽ", "priority": "medium", "time": "എപ്പോൾ വേണമെങ്കിലും"}}
 
 മറ്റെല്ലാ ചോദ്യങ്ങൾക്കും സ്വാഭാവികമായി മലയാളത്തിൽ മാത്രം മറുപടി നൽകുക.`,
         ta: `நீங்கள் "கிருஷி சகி", கேரள விவசாயிகளுக்கான ஒரு நட்பு, நிபுணத்துவ AI விவசாய உதவியாளர்.
@@ -71,7 +71,7 @@ For all other queries, respond naturally and ONLY in English.`,
 - பெயர்: ${profile.name}
 - இடம் (மாவட்டம்): ${districtName}
 - நில அளவு: ${profile.landSize}
-- முக்கிய பயிர்: ${profile.crop}
+- முக்கிய பயிர்: ${profile.crop || 'இன்னும் தேர்ந்தெடுக்கப்படவில்லை'}
 - மண் வகை: ${profile.soilType}
 - பாசன முறை: ${profile.irrigation}
 
@@ -82,7 +82,7 @@ For all other queries, respond naturally and ONLY in English.`,
 புதிய திறன் (படப் பகுப்பாய்வு): பயனர் ஒரு தாவரத்தின் படத்தைப் பதிவேற்றினால், நோய்கள் அல்லது பூச்சிகளைக் கண்டறியவும். அறிகுறிகள் மற்றும் சிகிச்சை விருப்பங்களை தமிழில் வழங்கவும். படம் தெளிவாக இல்லை என்றால், அதை பகுப்பாய்வு செய்ய முடியாது என்று தமிழில் கூறவும்.
 
 புதிய திறன் (பணி மேலாண்மை): ஒரு பணியைச் சேர்க்க பயனர் கேட்டால், இந்த வடிவமைப்பில் ஒரு JSON பொருளை மட்டும் பதிலளிக்கவும். வேறு எந்த உரையையும் சேர்க்க வேண்டாம்.
-{"action": "addTask", "task": "பணி ವಿವರണം தமிழில்"}
+{"action": "addTask", "task": {"text": "பணி விவரணம் தமிழில்", "priority": "medium", "time": "எந்த நேரத்திலும்"}}
 
 மற்ற அனைத்து கேள்விகளுக்கும், இயற்கையாகவும் தமிழிலும் மட்டும் பதிலளிக்கவும்.`
     };
@@ -100,36 +100,34 @@ export const createChatSession = (profile: Profile, lang: Language): Chat => {
     return chat;
 };
 
-export const getDailyTasks = async (profile: Profile, lang: Language): Promise<string[]> => {
+export const getDailyTasks = async (profile: Profile, lang: Language): Promise<AITask[]> => {
+    if (!profile.crop) return []; // Prevent API call if no crop is selected
     const districtName = translations[lang].districts[profile.district as keyof typeof translations.en.districts] || profile.district;
     const prompts = {
-        en: `As an expert farm manager AI named "Krishi Sakhi", generate a personalized list of 3-4 simple, actionable daily tasks for a farmer with the following profile. The tasks should be relevant to their main crop and location.
+        en: `As "Krishi Sakhi", generate a personalized list of 3-4 simple, actionable daily tasks for a farmer. Consider a plausible weather forecast for their location. For example, do not suggest watering if rain is likely.
         
         Farmer Profile:
         - Main Crop: ${profile.crop}
         - Location (District): ${districtName}
-        - Soil Type: ${profile.soilType}
-        - Irrigation: ${profile.irrigation}
 
-        Provide the tasks in English. Return the response ONLY as a JSON object with a single key "tasks" which is an array of strings.`,
-        ml: `"കൃഷി സഖി" എന്ന വിദഗ്ദ്ധനായ ഫാം മാനേജർ AI എന്ന നിലയിൽ, താഴെ പറയുന്ന പ്രൊഫൈലുള്ള ഒരു കർഷകന് വേണ്ടി 3-4 ലളിതവും പ്രായോഗികവുമായ ദൈനംദിന ജോലികളുടെ ഒരു വ്യക്തിഗത ലിസ്റ്റ് തയ്യാറാക്കുക. ജോലികൾ അവരുടെ പ്രധാന വിളയ്ക്കും സ്ഥലത്തിനും അനുയോജ്യമായിരിക്കണം.
+        For each task, provide a short text description, a suggested time (e.g., "Morning", "After 4 PM"), and a priority ('high', 'medium', or 'low').
+        Return the response ONLY as a JSON object in English with a single key "tasks", which is an array of task objects.`,
+        ml: `"കൃഷി സഖി" എന്ന നിലയിൽ, ഒരു കർഷകന് വേണ്ടി 3-4 ലളിതമായ ദൈനംദിന ജോലികളുടെ ഒരു ലിസ്റ്റ് തയ്യാറാക്കുക. അവരുടെ സ്ഥലത്തെ കാലാവസ്ഥാ പ്രവചനം പരിഗണിക്കുക. ഉദാഹരണത്തിന്, മഴ സാധ്യതയുണ്ടെങ്കിൽ നനയ്ക്കാൻ നിർദ്ദേശിക്കരുത്.
         
         കർഷകന്റെ പ്രൊഫൈൽ:
         - പ്രധാന വിള: ${profile.crop}
         - സ്ഥലം (ജില്ല): ${districtName}
-        - മണ്ണിന്റെ തരം: ${profile.soilType}
-        - ജലസേചനം: ${profile.irrigation}
 
-        ജോലികൾ മലയാളത്തിൽ നൽകുക. "tasks" എന്ന കീ അടങ്ങുന്ന ഒരു JSON ഒബ്ജക്റ്റായി മാത്രം പ്രതികരണം നൽകുക, അത് സ്ട്രിംഗുകളുടെ ഒരു അറേയാണ്.`,
-        ta: `"கிருஷி சகி" என்ற நிபுணர் பண்ணை மேலாளர் AI ஆக, பின்வரும் சுயவிவரத்துடன் ஒரு விவசாயிக்கு 3-4 எளிய, செயல்படக்கூடிய தினசரி பணிகளின் தனிப்பயனாக்கப்பட்ட பட்டியலை உருவாக்கவும். பணிகள் அவர்களின் முக்கிய பயிர் மற்றும் இருப்பிடத்திற்கு பொருத்தமானதாக இருக்க வேண்டும்.
+        ഓരോ ജോലിക്കും, ഒരു ചെറിയ വിവരണം, നിർദ്ദേശിക്കുന്ന സമയം (ഉദാ: "രാവിലെ", "വൈകുന്നേരം 4 മണിക്ക് ശേഷം"), മുൻഗണന ('high', 'medium', or 'low') എന്നിവ നൽകുക.
+        "tasks" എന്ന കീ അടങ്ങുന്ന ഒരു JSON ഒബ്ജക്റ്റായി മാത്രം മലയാളത്തിൽ പ്രതികരണം നൽകുക, അത് ടാസ്ക് ഒബ്ജക്റ്റുകളുടെ ഒരു അറേയാണ്.`,
+        ta: `"கிருஷி சகி"யாக, ஒரு விவசாயிக்கு 3-4 எளிய, தினசரி பணிகளின் பட்டியலை உருவாக்கவும். அவர்களின் இருப்பிடத்திற்கான நம்பத்தகுந்த வானிலை முன்னறிவிப்பைக் கவனியுங்கள். உதாரணமாக, மழை பெய்ய வாய்ப்பிருந்தால் నీர்ப்பாசனம் செய்ய பரிந்துரைக்க வேண்டாம்.
         
         விவசாயி சுயவிவரம்:
         - முக்கிய பயிர்: ${profile.crop}
         - இடம் (மாவட்டம்): ${districtName}
-        - மண் வகை: ${profile.soilType}
-        - நீர்ப்பாசனம்: ${profile.irrigation}
 
-        பணிகளை தமிழில் வழங்கவும். "tasks" என்ற ஒரே ஒரு திறவுகோலைக் கொண்ட ஒரு JSON பொருளாக பதிலை வழங்கவும், இது சரங்களின் வரிசையாகும்.`
+        ஒவ்வொரு பணிக்கும், ஒரு சிறிய உரை விளக்கம், பரிந்துரைக்கப்பட்ட நேரம் (எ.கா., "காலை", "மாலை 4 மணிக்கு பிறகு"), மற்றும் முன்னுரிமை ('high', 'medium', or 'low') வழங்கவும்.
+        பதிலை தமிழில் "tasks" என்ற ஒரே திறவுகோலைக் கொண்ட ஒரு JSON பொருளாக மட்டுமே வழங்கவும், இது பணி பொருட்களின் வரிசையாகும்.`
     };
     
     const prompt = prompts[lang];
@@ -139,7 +137,15 @@ export const getDailyTasks = async (profile: Profile, lang: Language): Promise<s
         properties: {
             tasks: {
                 type: Type.ARRAY,
-                items: { type: Type.STRING }
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        text: { type: Type.STRING },
+                        time: { type: Type.STRING },
+                        priority: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+                    },
+                    required: ['text', 'time', 'priority'],
+                }
             }
         },
         required: ['tasks']
@@ -166,43 +172,57 @@ export const getDailyTasks = async (profile: Profile, lang: Language): Promise<s
 };
 
 export const getWeeklyTasks = async (profile: Profile, lang: Language): Promise<WeeklyTasks | null> => {
+    if (!profile.crop) return null;
     const districtName = translations[lang].districts[profile.district as keyof typeof translations.en.districts] || profile.district;
     const prompts = {
-        en: `As "Krishi Sakhi", an expert AI farm manager, create a 7-day task plan for a farmer. The tasks must be relevant to their crop and location. For each day, provide 2-3 simple, actionable tasks.
+        en: `As "Krishi Sakhi", create a 7-day task plan for a farmer. The tasks must be relevant to their crop and location, considering the plausible weather for the week. For each day, provide 2-3 simple tasks.
         
         Farmer Profile:
         - Main Crop: ${profile.crop}
         - Location (District): ${districtName}
 
-        Return the response ONLY as a JSON object in English. The object should have keys "day1", "day2", through "day7". Each key's value should be an array of task strings.`,
-        ml: `"കൃഷി സഖി" എന്ന വിദഗ്ദ്ധനായ AI ഫാം മാനേജർ എന്ന നിലയിൽ, ഒരു കർഷകന് വേണ്ടി 7 ദിവസത്തെ ഒരു ടാസ്ക് പ്ലാൻ തയ്യാറാക്കുക. ജോലികൾ അവരുടെ വിളയ്ക്കും സ്ഥലത്തിനും അനുയോജ്യമായിരിക്കണം. ഓരോ ദിവസവും 2-3 ലളിതവും പ്രായോഗികവുമായ ജോലികൾ നൽകുക.
+        For each task, provide a short text description, a suggested time, and a priority ('high', 'medium', 'low').
+        Return the response ONLY as a JSON object in English. The object should have keys "day1" through "day7". Each key's value should be an array of task objects.`,
+        ml: `"കൃഷി സഖി" എന്ന നിലയിൽ, ഒരു കർഷകന് വേണ്ടി 7 ദിവസത്തെ ഒരു ടാസ്ക് പ്ലാൻ തയ്യാറാക്കുക. ജോലികൾ അവരുടെ വിളയ്ക്കും സ്ഥലത്തിനും, ആ ആഴ്ചയിലെ കാലാവസ്ഥയും പരിഗണിച്ച്, അനുയോജ്യമായിരിക്കണം. ഓരോ ദിവസവും 2-3 ലളിതമായ ജോലികൾ നൽകുക.
         
         കർഷകന്റെ പ്രൊഫൈൽ:
         - പ്രധാന വിള: ${profile.crop}
         - സ്ഥലം (ജില്ല): ${districtName}
 
-        പ്രതികരണം മലയാളത്തിൽ ഒരു JSON ഒബ്ജക്റ്റായി മാത്രം നൽകുക. ഒബ്ജക്റ്റിൽ "day1" മുതൽ "day7" വരെയുള്ള കീകൾ ഉണ്ടായിരിക്കണം. ഓരോ കീയുടെയും മൂല്യം ടാസ്ക് സ്ട്രിംഗുകളുടെ ഒരു അറേ ആയിരിക്കണം.`,
-        ta: `"கிருஷி சகி" என்ற நிபுணர் AI பண்ணை மேலாளராக, ஒரு விவசாயிக்கு 7-நாள் பணித் திட்டத்தை உருவாக்கவும். பணிகள் அவர்களின் பயிர் மற்றும் இருப்பிடத்திற்கு பொருத்தமானதாக இருக்க வேண்டும். ஒவ்வொரு நாளுக்கும், 2-3 எளிய, செயல்படக்கூடிய பணிகளை வழங்கவும்.
+        ഓരോ ജോലിക്കും, ഒരു ചെറിയ വിവരണം, നിർദ്ദേശിക്കുന്ന സമയം, മുൻഗണന ('high', 'medium', or 'low') എന്നിവ നൽകുക.
+        പ്രതികരണം മലയാളത്തിൽ ഒരു JSON ഒബ്ജക്റ്റായി മാത്രം നൽകുക. ഒബ്ജക്റ്റിൽ "day1" മുതൽ "day7" വരെയുള്ള കീകൾ ഉണ്ടായിരിക്കണം. ഓരോ കീയുടെയും മൂല്യം ടാസ്ക് ഒബ്ജക്റ്റുകളുടെ ഒരു അറേ ആയിരിക്കണം.`,
+        ta: `"கிருஷி சகி"யாக, ஒரு விவசாயிக்கு 7-நாள் பணித் திட்டத்தை உருவாக்கவும். பணிகள் அவர்களின் பயிர் மற்றும் இருப்பிடத்திற்கு பொருத்தமானதாக இருக்க வேண்டும், வாரத்திற்கான சாத்தியமான வானிலையைக் கருத்தில் கொண்டு. ஒவ்வொரு நாளுக்கும், 2-3 எளிய பணிகளை வழங்கவும்.
         
         விவசாயி சுயவிவரம்:
         - முக்கிய பயிர்: ${profile.crop}
         - இடம் (மாவட்டம்): ${districtName}
 
-        பதிலை தமிழில் ஒரு JSON பொருளாக மட்டுமே வழங்கவும். பொருளில் "day1" முதல் "day7" வரையிலான திறவுகோள்கள் இருக்க வேண்டும். ஒவ்வொரு திறவுகோளின் மதிப்பும் பணி சரங்களின் வரிசையாக இருக்க வேண்டும்.`
+        ஒவ்வொரு பணிக்கும், ஒரு சிறிய உரை விளக்கம், பரிந்துரைக்கப்பட்ட நேரம், மற்றும் முன்னுரிமை ('high', 'medium', 'low') வழங்கவும்.
+        பதிலை தமிழில் ஒரு JSON பொருளாக மட்டுமே வழங்கவும். பொருளில் "day1" முதல் "day7" வரையிலான திறவுகோள்கள் இருக்க வேண்டும். ஒவ்வொரு திறவுகோளின் மதிப்பும் பணி பொருட்களின் வரிசையாக இருக்க வேண்டும்.`
     };
 
     const prompt = prompts[lang];
 
+    const taskObjectSchema = {
+        type: Type.OBJECT,
+        properties: {
+            text: { type: Type.STRING },
+            time: { type: Type.STRING },
+            priority: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+        },
+        required: ['text', 'time', 'priority'],
+    };
+
     const responseSchema = {
         type: Type.OBJECT,
         properties: {
-            day1: { type: Type.ARRAY, items: { type: Type.STRING } },
-            day2: { type: Type.ARRAY, items: { type: Type.STRING } },
-            day3: { type: Type.ARRAY, items: { type: Type.STRING } },
-            day4: { type: Type.ARRAY, items: { type: Type.STRING } },
-            day5: { type: Type.ARRAY, items: { type: Type.STRING } },
-            day6: { type: Type.ARRAY, items: { type: Type.STRING } },
-            day7: { type: Type.ARRAY, items: { type: Type.STRING } },
+            day1: { type: Type.ARRAY, items: taskObjectSchema },
+            day2: { type: Type.ARRAY, items: taskObjectSchema },
+            day3: { type: Type.ARRAY, items: taskObjectSchema },
+            day4: { type: Type.ARRAY, items: taskObjectSchema },
+            day5: { type: Type.ARRAY, items: taskObjectSchema },
+            day6: { type: Type.ARRAY, items: taskObjectSchema },
+            day7: { type: Type.ARRAY, items: taskObjectSchema },
         },
         required: ['day1', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7']
     };
@@ -227,6 +247,7 @@ export const getWeeklyTasks = async (profile: Profile, lang: Language): Promise<
 };
 
 export const getDashboardAdvice = async (profile: Profile, lang: Language): Promise<DashboardAdvice | null> => {
+    if (!profile.crop) return null;
     const districtName = translations[lang].districts[profile.district as keyof typeof translations.en.districts] || profile.district;
     const prompts = {
         en: `As an expert farm manager AI named "Krishi Sakhi", generate a personalized title and a list of 2-3 concise, actionable tips for a farmer. The advice should be highly relevant to their main crop, location, and the current season (assume it's the present day).
@@ -234,8 +255,6 @@ export const getDashboardAdvice = async (profile: Profile, lang: Language): Prom
         Farmer Profile:
         - Main Crop: ${profile.crop}
         - Location (District): ${districtName}
-        - Soil Type: ${profile.soilType}
-        - Irrigation: ${profile.irrigation}
 
         Provide the response in English. The title should be engaging. The tips should be practical.
         Return the response ONLY as a JSON object with "title" (string) and "advice" (an array of strings).`,
@@ -244,8 +263,6 @@ export const getDashboardAdvice = async (profile: Profile, lang: Language): Prom
         കർഷകന്റെ പ്രൊഫൈൽ:
         - പ്രധാന വിള: ${profile.crop}
         - സ്ഥലം (ജില്ല): ${districtName}
-        - മണ്ണിന്റെ തരം: ${profile.soilType}
-        - ജലസേചനം: ${profile.irrigation}
 
         പ്രതികരണം മലയാളത്തിൽ നൽകുക. തലക്കെട്ട് ആകർഷകമായിരിക്കണം. നുറുങ്ങുകൾ പ്രായോഗികമായിരിക്കണം.
         "title" (string), "advice" (സ്ട്രിംഗുകളുടെ ഒരു അറേ) എന്നിവ അടങ്ങുന്ന ഒരു JSON ഒബ്ജക്റ്റായി മാത്രം പ്രതികരണം നൽകുക.`,
@@ -254,8 +271,6 @@ export const getDashboardAdvice = async (profile: Profile, lang: Language): Prom
         விவசாயி சுயவிவரம்:
         - முக்கிய பயிர்: ${profile.crop}
         - இடம் (மாவட்டம்): ${districtName}
-        - மண் வகை: ${profile.soilType}
-        - நீர்ப்பாசனம்: ${profile.irrigation}
 
         பதிலைத் தமிழில் வழங்கவும். தலைப்பு ஈர்க்கக்கூடியதாக இருக்க வேண்டும். குறிப்புகள் நடைமுறைக்குரியதாக இருக்க வேண்டும்.
         "title" (string) மற்றும் "advice" (சரங்களின் வரிசை) கொண்ட ஒரு JSON பொருளாக மட்டுமே பதிலை வழங்கவும்.`
@@ -296,6 +311,7 @@ export const getDashboardAdvice = async (profile: Profile, lang: Language): Prom
 };
 
 export const getMarketPrice = async (profile: Profile, lang: Language): Promise<MarketPrice | null> => {
+    if (!profile.crop) return null;
     const districtName = translations[lang].districts[profile.district as keyof typeof translations.en.districts] || profile.district;
     const prompts = {
         en: `As a market data provider AI, generate a realistic, single market price update for a farmer. The price should be for their main crop in a plausible local market within their district.

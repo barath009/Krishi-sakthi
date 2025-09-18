@@ -8,7 +8,7 @@ import { Dashboard } from './components/Dashboard';
 import { SoilAnalysis } from './components/SoilAnalysis';
 import { CropRecommendations } from './components/CropRecommendations';
 import { createChatSession, getSoilRecommendations, getDailyTasks, getDashboardAdvice, getMarketPrice, getWeeklyTasks } from './services/geminiService';
-import type { Profile, Message, Task, SoilData, CropRecommendation, AnalysisRecord, Page, Language, DashboardAdvice, MarketPrice, WeeklyTasks } from './types';
+import type { Profile, Message, Task, SoilData, CropRecommendation, AnalysisRecord, Page, Language, DashboardAdvice, MarketPrice, WeeklyTasks, AITask } from './types';
 import { MessageRole } from './types';
 import { translations } from './translations';
 import { LandingPage } from './LandingPage';
@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState<Profile>({
     name: '',
     email: '',
-    district: '',
+    district: 'Alappuzha',
     landSize: '',
     crop: '',
     soilType: '',
@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [activeCrops, setActiveCrops] = useState(0);
   
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -122,7 +123,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const fetchAdvice = async () => {
-        if (isLoggedIn && profile.name) {
+        if (isLoggedIn && profile.crop) {
             setIsAdviceLoading(true);
             try {
                 const adviceData = await getDashboardAdvice(profile, language);
@@ -143,7 +144,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const fetchMarketPrice = async () => {
-        if (isLoggedIn && profile.name) {
+        if (isLoggedIn && profile.crop) {
             setIsMarketPriceLoading(true);
             try {
                 const priceData = await getMarketPrice(profile, language);
@@ -164,16 +165,16 @@ const App: React.FC = () => {
   
   useEffect(() => {
     const fetchTasks = async () => {
-      if (isLoggedIn && profile.name) {
+      if (isLoggedIn && profile.crop) {
         setIsTasksLoading(true);
         try {
-          const taskTexts = await getDailyTasks(profile, language);
-          // FIX: Explicitly type `newTasks` as `Task[]` to ensure the `priority` property is correctly typed.
-          const newTasks: Task[] = taskTexts.map((text, index) => ({
+          const aiTasks = await getDailyTasks(profile, language);
+          const newTasks: Task[] = aiTasks.map((aiTask, index) => ({
             id: `${Date.now()}-${index}`,
-            text,
+            text: aiTask.text,
             completed: false,
-            priority: 'medium', // default priority
+            priority: aiTask.priority || 'medium',
+            dueDate: aiTask.time,
           }));
           setTasks(newTasks);
         } catch (error) {
@@ -192,7 +193,7 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const fetchWeeklyTasks = async () => {
-            if (isLoggedIn && profile.name) {
+            if (isLoggedIn && profile.crop) {
                 setIsWeeklyTasksLoading(true);
                 try {
                     const weeklyData = await getWeeklyTasks(profile, language);
@@ -229,12 +230,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddTask = (text: string) => {
+  const handleAddTask = (aiTask: AITask) => {
     const newTask: Task = {
         id: Date.now().toString(),
-        text,
+        text: aiTask.text,
         completed: false,
-        priority: 'medium',
+        priority: aiTask.priority || 'medium',
+        dueDate: aiTask.time,
     };
     setTasks(prev => [newTask, ...prev]);
   };
@@ -283,10 +285,8 @@ const App: React.FC = () => {
         const imagePart = await fileToGenerativePart(image);
         const prompt = text.trim() || imagePrompt;
         const textPart = { text: prompt };
-        // FIX: The `sendMessageStream` method expects a `message` property, not `parts`.
         stream = await chatRef.current.sendMessageStream({ message: [textPart, imagePart] });
       } else {
-        // FIX: The `sendMessageStream` method expects a `message` property, not `parts`. The `message` can be a simple string.
         stream = await chatRef.current.sendMessageStream({ message: text });
       }
 
@@ -301,6 +301,7 @@ const App: React.FC = () => {
         
         if (aiResponseText.trim().startsWith('{')) {
             try {
+                // Check if the text is a complete JSON object
                 const potentialJson = JSON.parse(aiResponseText);
                 if (potentialJson.action === 'addTask' && potentialJson.task) {
                     isToolResponse = true;
@@ -308,7 +309,7 @@ const App: React.FC = () => {
                     break; 
                 }
             } catch (e) {
-                // Not a complete JSON object yet, continue.
+                // Not a complete JSON object yet, continue accumulating chunks.
             }
         }
         
@@ -384,13 +385,14 @@ const App: React.FC = () => {
     setProfile(newProfile);
     setIsLoggedIn(true);
     setShowOnboarding(false);
-    setCurrentPage('dashboard');
+    setCurrentPage('soil-analysis'); // Start user at soil analysis
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setProfile({ name: '', email: '', district: '', landSize: '', crop: '', soilType: '', irrigation: '' });
+    setProfile({ name: '', email: '', district: 'Alappuzha', landSize: '', crop: '', soilType: '', irrigation: '' });
     setMessages([]);
+    setActiveCrops(0);
   };
 
   const handleStartOnboarding = () => {
@@ -400,11 +402,28 @@ const App: React.FC = () => {
   const handleProfileUpdate = (updatedProfile: Profile) => {
     setProfile(updatedProfile);
   };
+
+  const handleCropSelection = (cropName: string) => {
+    setProfile(prev => ({ ...prev, crop: cropName }));
+    setActiveCrops(1);
+    setCurrentPage('dashboard');
+    alert(translations[language].recommendations.cropSelected(cropName));
+  };
   
   const renderPage = () => {
     switch(currentPage) {
         case 'dashboard':
-            return <Dashboard tasks={tasks} onToggleTask={handleToggleTask} language={language} isTasksLoading={isTasksLoading} advice={dashboardAdvice} isAdviceLoading={isAdviceLoading} marketPrice={marketPrice} isMarketPriceLoading={isMarketPriceLoading} />;
+            return <Dashboard 
+                        tasks={tasks} 
+                        onToggleTask={handleToggleTask} 
+                        language={language} 
+                        isTasksLoading={isTasksLoading} 
+                        advice={dashboardAdvice} 
+                        isAdviceLoading={isAdviceLoading} 
+                        marketPrice={marketPrice} 
+                        isMarketPriceLoading={isMarketPriceLoading}
+                        activeCrops={activeCrops}
+                    />;
         case 'soil-analysis':
             return <SoilAnalysis onAnalyze={handleAnalysisSubmit} isLoading={isAnalyzing} language={language} />;
         case 'analysis-history':
@@ -430,9 +449,20 @@ const App: React.FC = () => {
                         onBack={() => setCurrentPage(cameFromHistory ? 'analysis-history' : 'soil-analysis')} 
                         language={language}
                         cameFromHistory={cameFromHistory}
+                        onSelectCrop={handleCropSelection}
                     />;
         default:
-            return <Dashboard tasks={tasks} onToggleTask={handleToggleTask} language={language} isTasksLoading={isTasksLoading} advice={dashboardAdvice} isAdviceLoading={isAdviceLoading} marketPrice={marketPrice} isMarketPriceLoading={isMarketPriceLoading} />;
+            return <Dashboard 
+                        tasks={tasks} 
+                        onToggleTask={handleToggleTask} 
+                        language={language} 
+                        isTasksLoading={isTasksLoading} 
+                        advice={dashboardAdvice} 
+                        isAdviceLoading={isAdviceLoading} 
+                        marketPrice={marketPrice} 
+                        isMarketPriceLoading={isMarketPriceLoading}
+                        activeCrops={activeCrops}
+                    />;
     }
   };
 

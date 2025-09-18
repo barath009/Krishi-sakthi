@@ -19,10 +19,13 @@ interface DashboardProps {
     isAdviceLoading: boolean;
     marketPrice: MarketPrice | null;
     isMarketPriceLoading: boolean;
+    activeCrops: number;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ tasks, onToggleTask, language, isTasksLoading, advice, isAdviceLoading, marketPrice, isMarketPriceLoading }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ tasks, onToggleTask, language, isTasksLoading, advice, isAdviceLoading, marketPrice, isMarketPriceLoading, activeCrops }) => {
     const t = translations[language].dashboard;
+
+    const nextIncompleteTask = tasks.find(task => !task.completed);
 
     return (
         <div className="max-w-screen-xl mx-auto">
@@ -36,9 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ tasks, onToggleTask, langu
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <StatsCard 
                     title={t.stats.activeCrops.title}
-                    value="3" 
-                    change={t.stats.activeCrops.change}
-                    changeType="increase" 
+                    value={activeCrops.toString()} 
                     language={language}
                 />
                 <StatsCard 
@@ -55,9 +56,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ tasks, onToggleTask, langu
                 />
                 <StatsCard 
                     title={t.stats.nextTask.title}
-                    value={t.stats.nextTask.value}
-                    subValue={t.stats.nextTask.subValue}
-                    category="irrigation"
+                    value={nextIncompleteTask?.dueDate || t.stats.nextTask.value}
+                    subValue={nextIncompleteTask?.text || t.stats.nextTask.subValue}
                     language={language}
                 />
             </div>

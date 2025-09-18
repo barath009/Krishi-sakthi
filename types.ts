@@ -20,18 +20,26 @@ export interface Message {
   imageUrl?: string;
 }
 
+// The task object structure used within the app's state
 export interface Task {
   id: string;
   text: string;
   completed: boolean;
-  priority?: 'high' | 'medium' | 'low';
+  priority: 'high' | 'medium' | 'low';
+  dueDate?: string; // e.g., "Morning", "By 2 PM"
+}
+
+// The task object structure returned by the AI
+export interface AITask {
+    text: string;
+    time: string; // This will map to dueDate
+    priority: 'high' | 'medium' | 'low';
 }
 
 export type ChatMessageRole = 'user' | 'model';
 
 export type Page = 'dashboard' | 'soil-analysis' | 'crop-recommendations' | 'analysis-history' | 'profile' | 'upcoming-tasks';
 
-// FIX: Add Language type so it can be shared across components
 export type Language = 'en' | 'ml' | 'ta';
 
 export interface SoilData {
@@ -76,5 +84,5 @@ export interface MarketPrice {
 }
 
 export interface WeeklyTasks {
-    [day: string]: string[]; // e.g., { "day1": ["Task A", "Task B"] }
+    [day: string]: AITask[];
 }

@@ -15,6 +15,7 @@ interface CropRecommendationsProps {
     onBack: () => void;
     language: Language;
     cameFromHistory: boolean;
+    onSelectCrop: (cropName: string) => void;
 }
 
 const suitabilityStyles: { [key: string]: string } = {
@@ -29,7 +30,7 @@ const suitabilityPillStyles: { [key: string]: string } = {
     'Good': 'bg-yellow-500',
 };
 
-export const CropRecommendations: React.FC<CropRecommendationsProps> = ({ soilData, recommendations, onBack, language, cameFromHistory }) => {
+export const CropRecommendations: React.FC<CropRecommendationsProps> = ({ soilData, recommendations, onBack, language, cameFromHistory, onSelectCrop }) => {
     const t = translations[language].recommendations;
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 3;
@@ -150,32 +151,42 @@ export const CropRecommendations: React.FC<CropRecommendationsProps> = ({ soilDa
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {currentRecommendations.map((rec, index) => (
-                             <div key={index} className={`bg-white border rounded-lg shadow-lg p-6 ${suitabilityStyles[rec.suitability]}`}>
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-                                        <LeafIcon /> {rec.cropName}
-                                    </h3>
-                                    <span className={`px-3 py-1 text-xs font-bold text-white rounded-full ${suitabilityPillStyles[rec.suitability]}`}>{t.crops.suitability[rec.suitability as keyof typeof t.crops.suitability]}</span>
-                                </div>
-                                <div className="flex items-center gap-6 text-sm text-gray-600 mb-6 border-b pb-4">
-                                    <div className="flex items-center gap-2"><YieldIcon /> {rec.yield}</div>
-                                    <div className="flex items-center gap-2"><CalendarIcon /> {rec.duration}</div>
-                                </div>
-                                
-                                <div className="mb-6">
-                                    <h4 className="font-bold text-gray-800 mb-2">{t.crops.reasonsTitle}</h4>
-                                    <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                                        {rec.reasons.map((reason, i) => <li key={i}>{reason}</li>)}
-                                    </ul>
-                                </div>
+                             <div key={index} className={`bg-white border rounded-lg shadow-lg p-6 flex flex-col ${suitabilityStyles[rec.suitability]}`}>
+                                <div className="flex-grow">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h3 className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                                            <LeafIcon /> {rec.cropName}
+                                        </h3>
+                                        <span className={`px-3 py-1 text-xs font-bold text-white rounded-full ${suitabilityPillStyles[rec.suitability]}`}>{t.crops.suitability[rec.suitability as keyof typeof t.crops.suitability]}</span>
+                                    </div>
+                                    <div className="flex items-center gap-6 text-sm text-gray-600 mb-6 border-b pb-4">
+                                        <div className="flex items-center gap-2"><YieldIcon /> {rec.yield}</div>
+                                        <div className="flex items-center gap-2"><CalendarIcon /> {rec.duration}</div>
+                                    </div>
+                                    
+                                    <div className="mb-6">
+                                        <h4 className="font-bold text-gray-800 mb-2">{t.crops.reasonsTitle}</h4>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                                            {rec.reasons.map((reason, i) => <li key={i}>{reason}</li>)}
+                                        </ul>
+                                    </div>
 
-                                <div>
-                                    <h4 className="flex items-center gap-2 font-bold text-gray-800 mb-2">
-                                        <PlantingIcon /> {t.crops.tipsTitle}
-                                    </h4>
-                                    <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                                       {rec.plantingTips.map((tip, i) => <li key={i}>{tip}</li>)}
-                                    </ul>
+                                    <div>
+                                        <h4 className="flex items-center gap-2 font-bold text-gray-800 mb-2">
+                                            <PlantingIcon /> {t.crops.tipsTitle}
+                                        </h4>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                                        {rec.plantingTips.map((tip, i) => <li key={i}>{tip}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="mt-6">
+                                    <button 
+                                        onClick={() => onSelectCrop(rec.cropName)}
+                                        className="w-full py-2 px-4 bg-farm-green-dark text-white font-bold rounded-lg hover:bg-green-800 transition-colors"
+                                    >
+                                        {t.selectCropButton}
+                                    </button>
                                 </div>
                             </div>
                         ))}

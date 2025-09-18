@@ -39,7 +39,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onLogin, onClo
         email: '',
         district: 'Alappuzha',
         landSize: '2 acres',
-        crop: 'Paddy',
+        crop: '', // Crop will be selected after analysis
         soilType: 'Alluvial Soil',
         irrigation: 'Canal Irrigation',
     });
@@ -123,10 +123,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onLogin, onClo
                              <div>
                                 <label htmlFor="landSize" className="block text-sm font-medium text-gray-700">{t.farm.landSizeLabel}</label>
                                 <input type="text" id="landSize" name="landSize" value={formData.landSize} onChange={handleChange} placeholder={t.farm.landSizePlaceholder} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" />
-                            </div>
-                             <div>
-                                <label htmlFor="crop" className="block text-sm font-medium text-gray-700">{t.farm.cropLabel}</label>
-                                <input type="text" id="crop" name="crop" value={formData.crop} onChange={handleChange} placeholder={t.farm.cropPlaceholder} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" />
                             </div>
                              <div>
                                 <label htmlFor="soilType" className="block text-sm font-medium text-gray-700">{t.farm.soilTypeLabel}</label>
